@@ -21,12 +21,12 @@ yn_prompt() {
       * ) echo "Please answer yes or no.";;
     esac
   done
-  
+
   return $output
 }
 
 replace_prefix() {
-  echo "Replacing all occurences of \"/opt/local\" with \"$macports_prefix\": "
+  echo "Replacing all occurrences of \"/opt/local\" with \"$macports_prefix\": "
   grep -Frl '/opt/local' "$compile_dir" | while IFS= read -r file; do
     sed -i '' "s#/opt/local#$macports_prefix#g" "$file"
     echo "Replaced in $file"
@@ -35,8 +35,9 @@ replace_prefix() {
 
 clone() {
   repo="$1"
+  branch="$2"
   echo "$repo"
-  git clone --depth=1 "$repo" "$compile_dir"
+  git clone --depth=1 -b "$branch" "$repo" "$compile_dir"
   cd "$compile_dir"
   git checkout -b "$branch_name"
   cd -
@@ -46,11 +47,10 @@ leopard_patch() {
   # Only run if actually running on leopard
   local var_dir="$macports_prefix/var/tenfourfox-developer-toolkit"
   local build_name
-  build_name="$(basename "$compile_dir")"
+  build_name="$(basename "$compile_dir") $proc"
 
   if [[ $(sw_vers -productVersion) == *"10.5"* ]]; then
     echo 'Patching for leopard'
-
 
     cp "$var_dir/leopard_${build_name}.patch" "${compile_dir}/leopard.patch"
     cd "$compile_dir"
@@ -61,22 +61,23 @@ leopard_patch() {
 }
 
 pull() {
-  echo 'Pull the latest changes. This will take awhile'
+  echo 'Pull the latest changes. This will take a while'
 
   cd "$compile_dir"
   local current_hash
   local new_hash
   local branch
 
-  branch="$(git branch --show-current)"
+  read -rp "Enter the branch to pull from (default: 'main' for Aquafox, 'master' for TenFourFox): " pull_branch
+  pull_branch="${pull_branch:-$default_branch}"
 
   git stash
-  git checkout master
+  git checkout "$pull_branch"
   current_hash="$(git rev-parse HEAD)"
-  git pull origin master
+  git pull origin "$pull_branch"
   new_hash="$(git rev-parse HEAD)"
-  git checkout "$branch"
-  git merge master
+  git checkout "$branch_name"
+  git merge "$pull_branch"
   git stash pop || true
 
   if [[ "$current_hash" != "$new_hash" ]]; then
@@ -120,19 +121,19 @@ build() {
 
 enable_quartz() {
   local build_name
-  build_name="$(basename "$compile_dir")"
+  build_name="$(basename "$compile_dir") $proc"
 
   # Test if Quartz extreme is supported. If so, give the option to enable it.
   if system_profiler SPDisplaysDataType | grep 'Quartz Extreme' | grep -q Supported; then
     if yn_prompt "Your video card supports Enable Quartz Extreme. Would you like to enable it in the browser?
-This may increase performance. (Yn or Nn): " 
+This may increase performance. (Yn or Nn): "
     then
       sed -i '' "s#^</dict>#  <key>Quartz2DExtremeEnabled</key>\\
   <true/>\\
   <key>QuartzGLEnable</key>\\
   <true/>\\
 </dict>#g" ~/"Desktop/${build_name}.app/Contents/Info.plist"
-      
+
       mv ~/"Desktop/${build_name}.app" ~/"Desktop/${build_name} Quartz.app"
     fi
   fi
@@ -141,7 +142,7 @@ This may increase performance. (Yn or Nn): "
 distribute() {
   echo "distributing"
   local build_name
-  build_name="$(basename "$compile_dir")"
+  build_name="$(basename "$compile_dir") $proc"
   cd "$compile_dir"
 
   chmod +x ./104fx_copy.sh
@@ -151,8 +152,30 @@ distribute() {
   cd -
 }
 
-repo='https://github.com/classilla/tenfourfox'
-compile_dir="${compile_dir}/tenfourfox"
+PS3="Would you like to build Aquafox or TenFourFox? (1-2): "
+
+select repo in 'Aquafox' 'TenFourFox'
+do
+  case "$repo" in
+    "Aquafox")
+      repo='https://github.com/BlackBirdLC/Aquafox'
+      default_branch="main"
+      compile_dir="${compile_dir}/Aquafox"
+      break
+      ;;
+    "TenFourFox")
+      repo='https://github.com/classilla/tenfourfox'
+      default_branch="master"
+      compile_dir="${compile_dir}/tenfourfox"
+      break
+      ;;
+    *)
+      echo 'Invalid selection. Try again.'
+      ;;
+    esac
+done
+
+echo ""
 
 PS3="Your processor is a $(machine).
 Please note that you can only build for the processor you have and lower.
@@ -171,9 +194,17 @@ done
 
 echo ""
 
+read -rp "Do you want to specify a branch to clone? (Y/n): " specify_branch
+
+if [[ "$specify_branch" == "Y" || "$specify_branch" == "y" ]]; then
+  read -rp "Enter the branch to clone (default: 'main' for Aquafox, 'master' for TenFourFox): " clone_branch
+else
+  clone_branch="$default_branch"
+fi
+
 if [ -d "$compile_dir" ]; then
-  option1="Pull latest source from master.
-   This stashes your changes pulls froms and merges master into your branch.
+  option1="Pull latest source from specified branch.
+   This stashes your changes, pulls from the specified branch, and merges it into your branch.
 "
   option2="Build from where it last left off.
    This keeps configure and obj-ff-dbg/ intact.
@@ -201,7 +232,7 @@ if [ -d "$compile_dir" ]; then
     esac
   done
 else
-  clone "$repo"
+  clone "$repo" "$clone_branch"
   leopard_patch
   replace_prefix
   build "$mozconfig" && distribute && enable_quartz
