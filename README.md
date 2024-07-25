@@ -1,15 +1,15 @@
-# The Unofficial TenFourFox Toolkit Scripts
+# Aquafox Build Script
+The Aquafox Build Script is a customized version of the tenfourfox-toolkit-scripts that enables the building of Aquafox.
 
-This is a collections of scripts used in [The Unofficial TenFourFox Toolkit](https://macintoshgarden.org/apps/the-unofficial-tenfourfox-toolkit). They are here for version control and so others can easily see how the process works.
+### Installation Steps:
+1. **Install The Unofficial TenFourFox Toolkit**: Begin by installing [The Unofficial TenFourFox Toolkit](https://macintoshgarden.org/apps/the-unofficial-tenfourfox-toolkit).
 
-| Script | Purpose |
-| ------- | ------- |
-| [build_tenfourfox](build_tenfourfox) | Does the actual building of TenFourFox |
-| [leopard.patch](leopard.patch) | A set of patches used for build TenFourFox on Leopard |
-| [PackageMaker/Tiger/InstallationCheck](PackageMaker/Tiger/InstallationCheck) | Tests if the Tiger toolkit can be installed on the system or not. It checks for OS X 10.4.11 and Xcode 2.5 |
-| [PackageMaker/Leopard/InstallationCheck](PackageMaker/Tiger/InstallationCheck) | Tests if the Leopard toolkit can be installed on the system or not. It checks for OS X 10.5.8 and Xcode 3.1.4 |
-| [PackageMaker/Tiger/InstallationCheck.strings](PackageMaker/Tiger/InstallationCheck.strings) | Error messages for InstallationCheck |
-| [PackageMaker/Leopard/InstallationCheck.strings](PackageMaker/Leopard/InstallationCheck.strings) | Error messages for InstallationCheck |
-| [PackageMaker/postflight](PackageMaker/postflight) | The postflight script that for after the toolkit installation has completed |
-| [PackageMaker/welcome.txt](PackageMaker/welcome.txt) | The welcome text for the installer |
-| [PackageMaker/license.txt](PackageMaker/license.txt) | The MacPorts license used in the installer |
+2. **Replace the build_tenfourfox script**: The only modification required is to replace your current `build_tenfourfox` script located in `/opt/macports-tff/bin/` with the one provided in this repository.
+
+That's all, you can now easily build Aquafox with your TenFourFox build environment.
+
+### Important Note for Leopard Users:
+Building Aquafox on Leopard might not work as the script will try to find a nonexisting patch-file, this issue will be fixed in the future.
+
+### Thanks To:
+- [Chris Jones](https://github.com/llamallama), the original creator of the sripts.
