@@ -55,7 +55,7 @@ leopard_patch() {
   if [[ $(sw_vers -productVersion) == *"10.5"* ]]; then
     echo 'Patching for Leopard'
 
-    cp "$var_dir/leopard_${build_name}.patch" "${compile_dir}/leopard.patch"
+    cp "$var_dir/leopard.patch" "${compile_dir}/leopard.patch"
     cd "$compile_dir" || return
 
     git apply leopard.patch

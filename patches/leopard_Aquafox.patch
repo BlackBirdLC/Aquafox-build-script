@@ -25,20 +25,20 @@ index 8e559a304..edf0d23fc 100644
  mk_add_options MOZ_MAKE_FLAGS="-s -j2"
  mk_add_options AUTOCONF=autoconf213
 diff --git a/G3.mozcfg b/G3.mozcfg
-index 7f63a53b0..33fb3ef8c 100644
+index c5ef3fd5c..c9c5c3d37 100644
 --- a/G3.mozcfg
 +++ b/G3.mozcfg
 @@ -1,6 +1,6 @@
  . $topsrcdir/browser/config/mozconfig
--export CC="/opt/macports-tff/bin/gcc-mp-4.8 -flax-vector-conversions -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
--export CXX="/opt/macports-tff/bin/g++-mp-4.8 -flax-vector-conversions -fpermissive -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
+-export CC="/opt/local/bin/gcc-mp-4.8 -flax-vector-conversions -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
+-export CXX="/opt/local/bin/g++-mp-4.8 -flax-vector-conversions -fpermissive -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
 +export CC="/opt/macports-tff/bin/gcc-mp-4.8 -mmacosx-version-min=10.4 -flax-vector-conversions -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
-+export CXX="/opt/macports-tff/bin/g++-mp-4.8 -mmacosx-version-min=10.4 -flax-vector-conversions -fpermissive -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
++export CXX="/opt/macports-tff/bin/g++-mp-4.8 -mmacosx-version-min=10.4 -flax-vector-conversions -fpermissive -O3 -mcpu=G3 -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic" -mtune=G3 -read_only_relocs suppress -mdynamic-no-pic"
  mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-ff-dbg
  mk_add_options MOZ_MAKE_FLAGS="-s -j2"
  mk_add_options AUTOCONF=autoconf213
 diff --git a/G4-7400.mozcfg b/G4-7400.mozcfg
-index e1f30f23f..110eb30dd 100644
+index e89213532..b3846bf7b 100644
 --- a/G4-7400.mozcfg
 +++ b/G4-7400.mozcfg
 @@ -1,6 +1,6 @@
@@ -51,7 +51,7 @@ index e1f30f23f..110eb30dd 100644
  mk_add_options MOZ_MAKE_FLAGS="-s -j2"
  mk_add_options AUTOCONF=autoconf213
 diff --git a/G4-7450.mozcfg b/G4-7450.mozcfg
-index 0054bfb28..d43e2187e 100644
+index 156f340b0..c3b3e53d6 100644
 --- a/G4-7450.mozcfg
 +++ b/G4-7450.mozcfg
 @@ -1,6 +1,6 @@
@@ -64,7 +64,7 @@ index 0054bfb28..d43e2187e 100644
  mk_add_options MOZ_MAKE_FLAGS="-s -j2"
  mk_add_options AUTOCONF=autoconf213
 diff --git a/G5.mozcfg b/G5.mozcfg
-index ab287a998..22c397bdb 100644
+index ba90c88c1..5c88537bc 100644
 --- a/G5.mozcfg
 +++ b/G5.mozcfg
 @@ -1,6 +1,6 @@
