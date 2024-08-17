@@ -8,8 +8,5 @@ The Aquafox Build Script is a customized version of the tenfourfox-toolkit-scrip
 
 That's all, you can now easily build Aquafox with your TenFourFox build environment.
 
-### Important Note for Leopard Users:
-Building Aquafox on Leopard might not work as the script will try to find a nonexisting patch-file, this issue will be fixed in the future.
-
 ### Thanks To:
 - [Chris Jones](https://github.com/llamallama), the original creator of the sripts.
