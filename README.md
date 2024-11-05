@@ -1,3 +1,5 @@
+Notice: This script is no longer necessary for building Aquafox, as Chris Jones has added an option for Aquafox in The Unofficial TenFourFox Toolkit. I am maintaining this script solely for learning purposes.
+
 # Aquafox Build Script
 The Aquafox Build Script is a customized version of the tenfourfox-toolkit-scripts that enables the building of Aquafox.
 

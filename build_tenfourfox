@@ -10,22 +10,18 @@ export COLUMNS=20
 
 yn_prompt() {
   local message="$1"
-  local output
-
   while true; do
     read -rp "$message" yn
     case "$yn" in
-      [Yy]* ) output=0; break;;
-      [Nn]* ) output=1; break;;
-      * ) echo "Please answer yes or no.";;
+      [Yy]* ) return 0 ;;
+      [Nn]* ) return 1 ;;
+      * ) echo "Please answer yes or no." ;;
     esac
   done
-
-  return $output
 }
 
 replace_prefix() {
-  echo "Replacing all occurrences of \"/opt/local\" with \"$macports_prefix\": "
+  echo "Replacing all occurrences of \"/opt/local\" with \"$macports_prefix\":"
   grep -Frl '/opt/local' "$compile_dir" | while IFS= read -r file; do
     sed -i '' "s#/opt/local#$macports_prefix#g" "$file"
     echo "Replaced in $file"
@@ -38,41 +34,24 @@ clone() {
   if [[ -z "$branch" ]]; then
     git clone --depth=1 "$repo" "$compile_dir"
   else
-    if ! git clone --depth=1 -b "$branch" "$repo" "$compile_dir"; then
-      return 1
-    fi
+    git clone --depth=1 -b "$branch" "$repo" "$compile_dir" || return 1
   fi
-  cd "$compile_dir" || return
-  cd - || return
 }
 
 leopard_patch() {
-  # Only run if actually running on Leopard
-  local var_dir="$macports_prefix/var/tenfourfox-developer-toolkit"
-  local build_name
-  build_name="$(basename "$compile_dir")"
-
   if [[ $(sw_vers -productVersion) == *"10.5"* ]]; then
     echo 'Patching for Leopard'
-
-    cp "$var_dir/leopard.patch" "${compile_dir}/leopard.patch"
-    cd "$compile_dir" || return
-
-    git apply leopard.patch
-    cd - || return
+    cp "$macports_prefix/var/tenfourfox-developer-toolkit/leopard.patch" "$compile_dir/leopard.patch"
+    git -C "$compile_dir" apply leopard.patch
   fi
 }
 
 pull() {
   echo 'Pulling the latest changes. This may take a while.'
+  local current_hash new_hash branch
 
   cd "$compile_dir" || return
-  local current_hash
-  local new_hash
-  local branch
-
   branch="$(git branch --show-current)"
-
   git stash
   current_hash="$(git rev-parse HEAD)"
   git pull origin "$branch"
@@ -82,7 +61,6 @@ pull() {
   if [[ "$current_hash" != "$new_hash" ]]; then
     replace_prefix
   fi
-  cd - || return
 }
 
 clean() {
@@ -95,142 +73,127 @@ build() {
 
   cd "$compile_dir" || return
   cp "$config" .mozconfig
-
   autoconf213
 
-  while [ $return_status -eq 0 ]; do
-    if ! gmake -f client.mk build; then
-      return_status=1
-
-      echo ""
-      if yn_prompt "------------ BUILD FAILED! RETRY? (Yy or Nn) ------------
-(A retry may be necessary if you have less than 4 GB of RAM): "
-      then
-        return_status=0
-      fi
-    else
-      return_status=0
+  while true; do
+    if gmake -f client.mk build; then
       break
+    else
+      echo ""
+      if yn_prompt "------------ BUILD FAILED! RETRY? (Yy or Nn) ------------\n(A retry may be necessary if you have less than 4 GB of RAM): "; then
+        continue
+      else
+        return 1
+      fi
     fi
   done
-
-  cd - || return
-  return $return_status
 }
 
 enable_quartz() {
-  local build_name
-  build_name="$(basename "$compile_dir")"
-
-  # Test if Quartz Extreme is supported. If so, give the option to enable it.
-  if system_profiler SPDisplaysDataType | grep 'Quartz Extreme' | grep -q Supported; then
-    if yn_prompt "Your video card supports Quartz Extreme. Would you like to enable it in the browser?
-This may increase performance. (Yy or Nn): "
-    then
+  if system_profiler SPDisplaysDataType | grep -q 'Quartz Extreme.*Supported'; then
+    if yn_prompt "Your video card supports Quartz 2D Extreme / QuartzGL. Would you like to enable it in the browser?
+This may increase performance. (Yy or Nn): "; then
       sed -i '' "s#^</dict>#  <key>Quartz2DExtremeEnabled</key>\\
   <true/>\\
   <key>QuartzGLEnable</key>\\
   <true/>\\
-</dict>#g" ~/"Desktop/${build_name}.app/Contents/Info.plist"
-
-      mv ~/"Desktop/${build_name}.app" ~/"Desktop/${build_name} Quartz.app"
+</dict>#g" ~/"Desktop/$(basename "$compile_dir").app/Contents/Info.plist"
+      mv ~/"Desktop/$(basename "$compile_dir").app" ~/"Desktop/$(basename "$compile_dir") Quartz.app"
     fi
   fi
 }
 
 distribute() {
   echo "Distributing"
-  local build_name
-  build_name="$(basename "$compile_dir")"
-  cd "$compile_dir" || return
-
-  chmod +x ./104fx_copy.sh
-  ./104fx_copy.sh ~/Desktop/"${build_name}.app"
-
-  echo "Exported to ~/Desktop/${build_name}.app"
-  cd - || return
+  chmod +x "$compile_dir/104fx_copy.sh"
+  "$compile_dir/104fx_copy.sh" ~/Desktop/"$(basename "$compile_dir").app"
+  echo "Exported to ~/Desktop/$(basename "$compile_dir").app"
 }
 
-PS3="Would you like to build Aquafox or TenFourFox? (1-2): "
-
-select repo in 'Aquafox' 'TenFourFox'
-do
-  case "$repo" in
-    "Aquafox")
-      repo='https://github.com/BlackBirdLC/Aquafox/'
-      compile_dir="${compile_dir}/Aquafox"
-      break
-      ;;
-    "TenFourFox")
-      repo='https://github.com/classilla/tenfourfox'
-      compile_dir="${compile_dir}/tenfourfox"
-      break
-      ;;
-    *)
-      echo 'Invalid selection. Try again.'
-      ;;
-  esac
-done
-
-echo ""
-
-PS3="Your processor is a $(machine).
-Please note that you can only build for the processor you have and lower.
-For example, you can't build for a G5 from a G4.
-Select the processor to build TenFourFox for (1-4): "
-
-select proc in 'G3' 'G4-7400' 'G4-7450' 'G5'
-do
-  if [ -n "$proc" ]; then
-    mozconfig="$proc.mozcfg"
-    break
-  else
-    echo 'Invalid selection. Try again.'
-  fi
-done
-
-echo ""
-
-if [ -d "$compile_dir" ]; then
-  option1="Pull the latest source from the current tracked branch.
-   This stashes your changes and pulls the latest from
-   the currently tracked branch.
-"
-  option2="Build from where it last left off.
-   This keeps configure and obj-ff-dbg/ intact.
-   Use this if you had to cancel your previous build.
-"
-  option3="Rebuild from scratch.
-   This runs 'rm -rf configure obj-ff-dbg/' and starts the build over.
-"
-  PS3="$compile_dir exists. Do you want to (1-3): "
-  select option in "$option1" "$option2" "$option3"
-  do
-    case $option in
-      "$option1")
-        pull
-        replace_prefix
-        build "$mozconfig" && distribute && enable_quartz
-        break;;
-      "$option2")
-        build "$mozconfig" && distribute && enable_quartz
-        break;;
-      "$option3")
-        echo 'Cleaning and starting over'
-        clean
-        replace_prefix
-        build "$mozconfig" && distribute && enable_quartz
-        break;;
+select_repo() {
+  PS3="Would you like to build Aquafox or TenFourFox? (1-2): "
+  select repo in 'Aquafox' 'TenFourFox'; do
+    case "$repo" in
+      "Aquafox")
+        echo 'https://github.com/BlackBirdLC/Aquafox/'
+        return
+        ;;
+      "TenFourFox")
+        echo 'https://github.com/classilla/tenfourfox'
+        return
+        ;;
+      *)
+        echo 'Invalid selection. Try again.'
+        ;;
     esac
   done
-else
-  while true; do
-    read -rp "Enter the branch you would like to build. Leave blank for the default: " branch
-    if clone "$repo" "$branch"; then
-      break
+}
+
+select_processor() {
+  local repo_name="$1"
+  PS3="Your processor is a $(machine).
+Please note that you can only build for the processor you have and lower.
+For example, you can't build for a G5 from a G4.
+Select the processor to build $repo_name for (1-4): "
+
+  select proc in 'G3' 'G4-7400' 'G4-7450' 'G5'; do
+    if [[ -n "$proc" ]]; then
+      echo "$proc.mozcfg"
+      return
+    else
+      echo 'Invalid selection. Try again.'
     fi
   done
-  leopard_patch
-  replace_prefix
-  build "$mozconfig" && distribute && enable_quartz
-fi
+}
+
+main() {
+  local repo branch mozconfig
+
+  repo=$(select_repo)
+  compile_dir="${compile_dir}/$(basename "$repo" .git)"
+
+  if [[ -d "$compile_dir" ]]; then
+    option1="Pull the latest source from the current tracked branch.
+This stashes your changes and pulls the latest from the currently tracked branch."
+    option2="Build from where it last left off.
+This keeps configure and obj-ff-dbg/ intact.
+Use this if you had to cancel your previous build."
+    option3="Rebuild from scratch.
+This runs 'rm -rf configure obj-ff-dbg/' and starts the build over."
+
+    PS3="$compile_dir exists. Do you want to (1-3): "
+    select option in "$option1" "$option2" "$option3"; do
+      case $option in
+        "$option1")
+          pull
+          replace_prefix
+          build "$(select_processor "$repo")" && distribute && enable_quartz
+          break
+          ;;
+        "$option2")
+          build "$(select_processor "$repo")" && distribute && enable_quartz
+          break
+          ;;
+        "$option3")
+          echo 'Cleaning and starting over'
+          clean
+          replace_prefix
+          build "$(select_processor "$repo")" && distribute && enable_quartz
+          break
+          ;;
+      esac
+    done
+  else
+    while true; do
+      read -rp "Enter the branch you would like to build. Leave blank for the default: " branch
+      if clone "$repo" "$branch"; then
+        break
+      fi
+    done
+    leopard_patch
+    replace_prefix
+    build "$(select_processor "$repo")" && distribute && enable_quartz
+  fi
+}
+
+main "$@"
